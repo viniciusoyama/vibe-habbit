@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import CharacterSprite from '../components/Character';
 import { getCharacter, getSkills, getHabits } from '../utils/storageAPI';
+import { getSkillCap, getProgressPercent } from '../utils/skillCap';
 
 const Dashboard = () => {
   const [character, setCharacter] = useState(null);
@@ -59,6 +60,19 @@ const Dashboard = () => {
     return habits.reduce((sum, habit) => sum + habit.xp, 0);
   };
 
+  // Get linked skill names for a habit
+  const getLinkedSkillNames = (habit) => {
+    if (!habit.skill_ids || habit.skill_ids.length === 0) return 'No skills';
+    return habit.skill_ids
+      .map(id => skills.find(s => s.id === id)?.name || 'Unknown')
+      .join(', ');
+  };
+
+  // Count habits linked to a skill
+  const getHabitsLinkedToSkill = (skillId) => {
+    return habits.filter(h => h.skill_ids && h.skill_ids.includes(skillId)).length;
+  };
+
   return (
     <div className="min-h-screen bg-theme-bg p-4">
       <div className="max-w-6xl mx-auto">
@@ -108,6 +122,15 @@ const Dashboard = () => {
         {/* Skills Breakdown */}
         <div className="pixel-card mb-8">
           <h2 className="text-theme-primary text-sm mb-4">Skill Levels</h2>
+
+          {/* Funny motivational quote */}
+          <div className="bg-theme-bg-dark border-2 border-dashed border-theme-primary p-3 mb-4">
+            <p className="text-xs text-theme-text-muted italic text-center">
+              "The cap always increases. Growing never ends!"
+            </p>
+            <p className="text-xs text-theme-primary text-center mt-1">— Master Oogway</p>
+          </div>
+
           {skills.length === 0 ? (
             <p className="text-xs text-theme-text-muted text-center py-8">
               No skills yet. Create some skills to track your progress!
@@ -119,17 +142,17 @@ const Dashboard = () => {
                   <div className="flex justify-between items-center mb-2">
                     <h3 className="text-theme-primary text-sm">{skill.name}</h3>
                     <span className="text-xs bg-theme-primary text-theme-bg-dark px-2 py-1 font-bold">
-                      Lv {skill.level}
+                      {skill.level} / {getSkillCap(skill.level)}
                     </span>
                   </div>
                   <div className="stat-bar">
                     <div
                       className="stat-bar-fill"
-                      style={{ width: `${Math.min((skill.level / 20) * 100, 100)}%` }}
+                      style={{ width: `${getProgressPercent(skill.level)}%` }}
                     ></div>
                   </div>
                   <p className="text-xs text-theme-text-muted mt-2">
-                    {habits.filter((h) => h.skill_id === skill.id).length} habit(s) linked
+                    {getHabitsLinkedToSkill(skill.id)} habit(s) linked
                   </p>
                 </div>
               ))}
@@ -146,13 +169,11 @@ const Dashboard = () => {
             </p>
           ) : (
             <div className="grid md:grid-cols-2 gap-4">
-              {habits.map((habit) => {
-                const skill = skills.find((s) => s.id === habit.skill_id);
-                return (
+              {habits.map((habit) => (
                   <div key={habit.id} className="bg-theme-bg-dark border-4 border-theme-border p-4">
                     <h3 className="text-theme-primary text-sm mb-2">{habit.name}</h3>
                     <p className="text-xs text-theme-text-muted mb-2">
-                      Linked to: {skill ? skill.name : 'No skill'}
+                      Skills: {getLinkedSkillNames(habit)}
                     </p>
                     <div className="flex justify-between items-center">
                       <span className="text-xs">XP: {habit.xp}</span>
@@ -167,8 +188,7 @@ const Dashboard = () => {
                       ></div>
                     </div>
                   </div>
-                );
-              })}
+              ))}
             </div>
           )}
         </div>

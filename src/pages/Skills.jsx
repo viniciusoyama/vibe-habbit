@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { getSkills, addSkill, updateSkill, deleteSkill } from '../utils/storageAPI';
+import { getSkillCap, getProgressPercent } from '../utils/skillCap';
 
 const Skills = () => {
   const [skills, setSkills] = useState([]);
@@ -84,34 +85,6 @@ const Skills = () => {
     setEditingId(null);
     setEditingName('');
     setEditingLevel(0);
-  };
-
-  // Calculate the current cap for a skill level
-  // Caps: 10, 30, 90, 190, 290, 390, ...
-  const getSkillCap = (level) => {
-    if (level < 10) return 10;
-    if (level < 30) return 30;
-    if (level < 100) return 100;
-    // After 100, caps increase by 100: 190, 290, 390, ...
-    const capsAfter100 = Math.floor((level - 100) / 100) + 1;
-    return 100 + capsAfter100 * 100;
-  };
-
-  // Get previous cap (for calculating progress within current tier)
-  const getPreviousCap = (currentCap) => {
-    if (currentCap === 10) return 0;
-    if (currentCap === 30) return 10;
-    if (currentCap === 90) return 30;
-    return currentCap - 100;
-  };
-
-  // Calculate progress percentage within current tier
-  const getProgressPercent = (level) => {
-    const cap = getSkillCap(level);
-    const prevCap = getPreviousCap(cap);
-    const progressInTier = level - prevCap;
-    const tierSize = cap - prevCap;
-    return (progressInTier / tierSize) * 100;
   };
 
   return (
