@@ -1,12 +1,12 @@
 # Vibe Habbit RPG
 
-Gamified habit tracker that treats your life like an RPG.
-
 Vibe Habbit RPG turns habits into quests, skills into stats and consistency into levels.
 
 There is no final boss. The level cap keeps moving. Good luck.
 
 <div align="center">
+  <img src="https://img.shields.io/badge/-vibe_coded-FF61F6?logo=claude&logoColor=white&style=for-the-badge">
+  <br/>
   <img src="https://raw.githubusercontent.com/viniciusoyama/vibe-habbit/refs/heads/main/public/screenshot.png">
 </div>
 
