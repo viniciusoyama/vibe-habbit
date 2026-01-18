@@ -35,7 +35,7 @@ export const getSkills = async () => {
 
 export const addSkill = async (skill) => {
   try {
-    const response = await skillsAPI.create(skill.name);
+    const response = await skillsAPI.create(skill.name, skill.level);
     return response.skill;
   } catch (error) {
     console.error('Error adding skill:', error);

@@ -1,4 +1,4 @@
-# Deployment Guide for Habbit RPG
+# Deployment Guide for Vibe Habbit RPG
 
 This guide covers deploying the full-stack Habbit RPG application to production.
 

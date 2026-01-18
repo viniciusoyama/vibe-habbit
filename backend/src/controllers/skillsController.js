@@ -18,15 +18,17 @@ export const getSkills = async (req, res) => {
 // Create new skill
 export const createSkill = async (req, res) => {
   try {
-    const { name } = req.body;
+    const { name, level } = req.body;
 
     if (!name || name.trim().length === 0) {
       return res.status(400).json({ error: 'Skill name is required' });
     }
 
+    const initialLevel = level !== undefined ? Math.max(0, parseInt(level) || 0) : 0;
+
     const result = await run(
-      'INSERT INTO skills (user_id, name) VALUES (?, ?)',
-      [1, name.trim()]
+      'INSERT INTO skills (user_id, name, level) VALUES (?, ?, ?)',
+      [1, name.trim(), initialLevel]
     );
 
     const skill = await get(

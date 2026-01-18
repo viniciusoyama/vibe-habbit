@@ -9,8 +9,8 @@ export default defineConfig({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.ico', 'robots.txt', 'apple-touch-icon.png'],
       manifest: {
-        name: 'Habbit RPG',
-        short_name: 'Habbit RPG',
+        name: 'Vibe Habbit RPG',
+        short_name: 'Vibe Habbit RPG',
         description: 'Track your habits like an RPG adventure',
         theme_color: '#1a1a2e',
         background_color: '#0f0f1e',

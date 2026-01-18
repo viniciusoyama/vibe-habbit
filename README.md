@@ -1,4 +1,4 @@
-# Habbit RPG
+# Vibe Habbit RPG
 
 A full-stack gamified habit tracker with pixel art RPG theme. Track your habits like an RPG adventure!
 

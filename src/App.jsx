@@ -16,7 +16,7 @@ const Navigation = () => {
     <nav className="bg-theme-accent border-b-4 border-theme-border p-4">
       <div className="max-w-6xl mx-auto">
         <div className="flex items-center justify-between mb-4">
-          <h1 className="text-theme-primary text-xl">Habbit RPG</h1>
+          <h1 className="text-theme-primary text-xl">Vibe Habbit RPG</h1>
           <div className="flex items-center gap-2">
             <ThemeSelector />
           </div>

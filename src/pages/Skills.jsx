@@ -4,8 +4,10 @@ import { getSkills, addSkill, updateSkill, deleteSkill } from '../utils/storageA
 const Skills = () => {
   const [skills, setSkills] = useState([]);
   const [newSkillName, setNewSkillName] = useState('');
+  const [newSkillLevel, setNewSkillLevel] = useState(0);
   const [editingId, setEditingId] = useState(null);
   const [editingName, setEditingName] = useState('');
+  const [editingLevel, setEditingLevel] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -32,8 +34,9 @@ const Skills = () => {
     if (newSkillName.trim()) {
       try {
         setError(null);
-        await addSkill({ name: newSkillName.trim() });
+        await addSkill({ name: newSkillName.trim(), level: newSkillLevel });
         setNewSkillName('');
+        setNewSkillLevel(0);
         await loadSkills();
       } catch (err) {
         setError('Failed to add skill. Please try again.');
@@ -58,15 +61,17 @@ const Skills = () => {
   const handleStartEdit = (skill) => {
     setEditingId(skill.id);
     setEditingName(skill.name);
+    setEditingLevel(skill.level);
   };
 
   const handleSaveEdit = async (id) => {
     if (editingName.trim()) {
       try {
         setError(null);
-        await updateSkill(id, { name: editingName.trim() });
+        await updateSkill(id, { name: editingName.trim(), level: editingLevel });
         setEditingId(null);
         setEditingName('');
+        setEditingLevel(0);
         await loadSkills();
       } catch (err) {
         setError('Failed to update skill. Please try again.');
@@ -78,6 +83,7 @@ const Skills = () => {
   const handleCancelEdit = () => {
     setEditingId(null);
     setEditingName('');
+    setEditingLevel(0);
   };
 
   return (
@@ -95,15 +101,29 @@ const Skills = () => {
         {/* Add New Skill Form */}
         <div className="pixel-card mb-8">
           <h2 className="text-theme-primary text-sm mb-4">Add New Skill</h2>
-          <form onSubmit={handleAddSkill} className="flex gap-4">
-            <input
-              type="text"
-              value={newSkillName}
-              onChange={(e) => setNewSkillName(e.target.value)}
-              placeholder="Enter skill name..."
-              className="pixel-input flex-1"
-              disabled={loading}
-            />
+          <form onSubmit={handleAddSkill} className="flex gap-4 items-end">
+            <div className="flex-1">
+              <label className="text-xs text-theme-text-muted block mb-1">Name</label>
+              <input
+                type="text"
+                value={newSkillName}
+                onChange={(e) => setNewSkillName(e.target.value)}
+                placeholder="Enter skill name..."
+                className="pixel-input w-full"
+                disabled={loading}
+              />
+            </div>
+            <div className="w-24">
+              <label className="text-xs text-theme-text-muted block mb-1">Level</label>
+              <input
+                type="number"
+                min="0"
+                value={newSkillLevel}
+                onChange={(e) => setNewSkillLevel(Math.max(0, parseInt(e.target.value) || 0))}
+                className="pixel-input w-full text-center"
+                disabled={loading}
+              />
+            </div>
             <button type="submit" className="pixel-button" disabled={loading}>
               Add
             </button>
@@ -130,13 +150,28 @@ const Skills = () => {
                 >
                   <div className="flex-1">
                     {editingId === skill.id ? (
-                      <input
-                        type="text"
-                        value={editingName}
-                        onChange={(e) => setEditingName(e.target.value)}
-                        className="pixel-input w-full"
-                        autoFocus
-                      />
+                      <div className="flex gap-4 items-end">
+                        <div className="flex-1">
+                          <label className="text-xs text-theme-text-muted block mb-1">Name</label>
+                          <input
+                            type="text"
+                            value={editingName}
+                            onChange={(e) => setEditingName(e.target.value)}
+                            className="pixel-input w-full"
+                            autoFocus
+                          />
+                        </div>
+                        <div className="w-20">
+                          <label className="text-xs text-theme-text-muted block mb-1">Level</label>
+                          <input
+                            type="number"
+                            min="0"
+                            value={editingLevel}
+                            onChange={(e) => setEditingLevel(Math.max(0, parseInt(e.target.value) || 0))}
+                            className="pixel-input w-full text-center"
+                          />
+                        </div>
+                      </div>
                     ) : (
                       <>
                         <h3 className="text-theme-primary text-sm mb-2">{skill.name}</h3>

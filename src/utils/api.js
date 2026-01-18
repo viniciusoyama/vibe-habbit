@@ -41,10 +41,10 @@ export const characterAPI = {
 export const skillsAPI = {
   getAll: () => apiRequest('/skills'),
 
-  create: (name) =>
+  create: (name, level) =>
     apiRequest('/skills', {
       method: 'POST',
-      body: JSON.stringify({ name }),
+      body: JSON.stringify({ name, level }),
     }),
 
   update: (id, updates) =>
