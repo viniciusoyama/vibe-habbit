@@ -1,5 +1,14 @@
 import { get, all, run, transaction } from '../config/database.js';
 
+// Helper to get skill IDs for a habit
+const getHabitSkillIds = (habitId) => {
+  const rows = all(
+    'SELECT skill_id FROM habit_skills WHERE habit_id = ?',
+    [habitId]
+  );
+  return rows.map(row => row.skill_id);
+};
+
 // Get all habits for user
 export const getHabits = async (req, res) => {
   try {
@@ -8,7 +17,13 @@ export const getHabits = async (req, res) => {
       [1]
     );
 
-    res.json({ habits });
+    // Attach skill_ids to each habit
+    const habitsWithSkills = habits.map(habit => ({
+      ...habit,
+      skill_ids: getHabitSkillIds(habit.id)
+    }));
+
+    res.json({ habits: habitsWithSkills });
   } catch (error) {
     console.error('Get habits error:', error);
     res.status(500).json({ error: 'Failed to get habits' });
@@ -18,36 +33,52 @@ export const getHabits = async (req, res) => {
 // Create new habit
 export const createHabit = async (req, res) => {
   try {
-    const { name, skillId } = req.body;
+    const { name, skillIds, skillId } = req.body;
+
+    // Support both new skillIds array and legacy skillId
+    const skills = skillIds || (skillId ? [skillId] : []);
 
     if (!name || name.trim().length === 0) {
       return res.status(400).json({ error: 'Habit name is required' });
     }
 
-    // Verify skill belongs to user if skillId provided
-    if (skillId) {
+    // Verify all skill IDs belong to user
+    for (const sid of skills) {
       const skillCheck = await get(
         'SELECT id FROM skills WHERE id = ? AND user_id = ?',
-        [skillId, 1]
+        [sid, 1]
       );
       if (!skillCheck) {
-        return res.status(404).json({ error: 'Skill not found' });
+        return res.status(404).json({ error: `Skill ${sid} not found` });
       }
     }
 
     const result = await run(
-      'INSERT INTO habits (user_id, name, skill_id) VALUES (?, ?, ?)',
-      [1, name.trim(), skillId || null]
+      'INSERT INTO habits (user_id, name) VALUES (?, ?)',
+      [1, name.trim()]
     );
+
+    const habitId = result.lastInsertRowid;
+
+    // Insert skill links into junction table
+    for (const sid of skills) {
+      await run(
+        'INSERT INTO habit_skills (habit_id, skill_id) VALUES (?, ?)',
+        [habitId, sid]
+      );
+    }
 
     const habit = await get(
       'SELECT * FROM habits WHERE id = ?',
-      [result.lastInsertRowid]
+      [habitId]
     );
 
     res.status(201).json({
       message: 'Habit created successfully',
-      habit
+      habit: {
+        ...habit,
+        skill_ids: skills
+      }
     });
   } catch (error) {
     console.error('Create habit error:', error);
@@ -59,54 +90,56 @@ export const createHabit = async (req, res) => {
 export const updateHabit = async (req, res) => {
   try {
     const { id } = req.params;
-    const { name, skillId } = req.body;
+    const { name, skillIds, skillId } = req.body;
 
-    const updates = [];
-    const values = [];
-
-    if (name !== undefined) {
-      updates.push(`name = ?`);
-      values.push(name.trim());
-    }
-    if (skillId !== undefined) {
-      // Verify skill belongs to user if skillId provided
-      if (skillId !== null) {
-        const skillCheck = await get(
-          'SELECT id FROM skills WHERE id = ? AND user_id = ?',
-          [skillId, 1]
-        );
-        if (!skillCheck) {
-          return res.status(404).json({ error: 'Skill not found' });
-        }
-      }
-      updates.push(`skill_id = ?`);
-      values.push(skillId);
-    }
-
-    if (updates.length === 0) {
-      return res.status(400).json({ error: 'No fields to update' });
-    }
-
-    updates.push(`updated_at = CURRENT_TIMESTAMP`);
-    values.push(1, id);
-
-    const result = await run(
-      `UPDATE habits SET ${updates.join(', ')} WHERE user_id = ? AND id = ?`,
-      values
+    // Verify habit belongs to user
+    const existingHabit = await get(
+      'SELECT * FROM habits WHERE id = ? AND user_id = ?',
+      [id, 1]
     );
-
-    if (result.changes === 0) {
+    if (!existingHabit) {
       return res.status(404).json({ error: 'Habit not found' });
     }
 
-    const habit = await get(
-      'SELECT * FROM habits WHERE id = ?',
-      [id]
-    );
+    // Update habit name if provided
+    if (name !== undefined) {
+      await run(
+        'UPDATE habits SET name = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
+        [name.trim(), id]
+      );
+    }
+
+    // Update skill links if provided (support both skillIds array and legacy skillId)
+    const skills = skillIds !== undefined ? skillIds : (skillId !== undefined ? (skillId ? [skillId] : []) : null);
+
+    if (skills !== null) {
+      // Validate all skill IDs
+      for (const sid of skills) {
+        const skillCheck = await get(
+          'SELECT id FROM skills WHERE id = ? AND user_id = ?',
+          [sid, 1]
+        );
+        if (!skillCheck) {
+          return res.status(404).json({ error: `Skill ${sid} not found` });
+        }
+      }
+
+      // Replace skill links: delete old, insert new
+      await run('DELETE FROM habit_skills WHERE habit_id = ?', [id]);
+      for (const sid of skills) {
+        await run(
+          'INSERT INTO habit_skills (habit_id, skill_id) VALUES (?, ?)',
+          [id, sid]
+        );
+      }
+    }
+
+    const habit = await get('SELECT * FROM habits WHERE id = ?', [id]);
+    const skill_ids = getHabitSkillIds(habit.id);
 
     res.json({
       message: 'Habit updated successfully',
-      habit
+      habit: { ...habit, skill_ids }
     });
   } catch (error) {
     console.error('Update habit error:', error);
@@ -152,7 +185,7 @@ export const completeHabit = async (req, res) => {
     transaction(() => {
       // Verify habit belongs to user
       const habit = get(
-        'SELECT id, skill_id, xp FROM habits WHERE id = ? AND user_id = ?',
+        'SELECT id, xp FROM habits WHERE id = ? AND user_id = ?',
         [id, 1]
       );
 
@@ -183,12 +216,21 @@ export const completeHabit = async (req, res) => {
         [newXP, id]
       );
 
-      // Check if skill should level up (every 5 XP)
-      if (newXP % 5 === 0 && habit.skill_id) {
-        run(
-          'UPDATE skills SET level = level + 1, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
-          [habit.skill_id]
+      // Check if skills should level up (every 5 XP)
+      if (newXP % 5 === 0) {
+        // Get all linked skills from junction table
+        const linkedSkills = all(
+          'SELECT skill_id FROM habit_skills WHERE habit_id = ?',
+          [id]
         );
+
+        // Level up ALL linked skills
+        for (const { skill_id } of linkedSkills) {
+          run(
+            'UPDATE skills SET level = level + 1, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
+            [skill_id]
+          );
+        }
       }
 
       // Increment character total XP
@@ -222,7 +264,7 @@ export const uncompleteHabit = async (req, res) => {
     transaction(() => {
       // Verify habit belongs to user
       const habit = get(
-        'SELECT id, skill_id, xp FROM habits WHERE id = ? AND user_id = ?',
+        'SELECT id, xp FROM habits WHERE id = ? AND user_id = ?',
         [id, 1]
       );
 
@@ -246,7 +288,7 @@ export const uncompleteHabit = async (req, res) => {
         [id, today]
       );
 
-      // Check if we need to decrease skill level
+      // Check if we need to decrease skill levels
       const wasLevelUp = habit.xp % 5 === 0 && habit.xp > 0;
 
       // Decrement habit XP
@@ -256,12 +298,19 @@ export const uncompleteHabit = async (req, res) => {
         [newXP, id]
       );
 
-      // Decrease skill level if it was a level-up XP
-      if (wasLevelUp && habit.skill_id) {
-        run(
-          'UPDATE skills SET level = MAX(0, level - 1), updated_at = CURRENT_TIMESTAMP WHERE id = ?',
-          [habit.skill_id]
+      // Decrease skill levels for ALL linked skills if it was a level-up XP
+      if (wasLevelUp) {
+        const linkedSkills = all(
+          'SELECT skill_id FROM habit_skills WHERE habit_id = ?',
+          [id]
         );
+
+        for (const { skill_id } of linkedSkills) {
+          run(
+            'UPDATE skills SET level = MAX(0, level - 1), updated_at = CURRENT_TIMESTAMP WHERE id = ?',
+            [skill_id]
+          );
+        }
       }
 
       // Decrement character total XP

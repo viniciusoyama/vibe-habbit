@@ -76,7 +76,7 @@ export const getHabits = async () => {
 
 export const addHabit = async (habit) => {
   try {
-    const response = await habitsAPI.create(habit.name, habit.skillId);
+    const response = await habitsAPI.create(habit.name, habit.skillIds || []);
     return response.habit;
   } catch (error) {
     console.error('Error adding habit:', error);

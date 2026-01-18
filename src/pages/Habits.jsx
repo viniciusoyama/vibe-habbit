@@ -14,10 +14,10 @@ const Habits = () => {
   const [habits, setHabits] = useState([]);
   const [skills, setSkills] = useState([]);
   const [newHabitName, setNewHabitName] = useState('');
-  const [newHabitSkill, setNewHabitSkill] = useState('');
+  const [newHabitSkillIds, setNewHabitSkillIds] = useState([]);
   const [editingId, setEditingId] = useState(null);
   const [editingName, setEditingName] = useState('');
-  const [editingSkill, setEditingSkill] = useState('');
+  const [editingSkillIds, setEditingSkillIds] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [completionStates, setCompletionStates] = useState({});
@@ -60,10 +60,10 @@ const Habits = () => {
         setError(null);
         await addHabit({
           name: newHabitName.trim(),
-          skillId: newHabitSkill || null,
+          skillIds: newHabitSkillIds,
         });
         setNewHabitName('');
-        setNewHabitSkill('');
+        setNewHabitSkillIds([]);
         await loadData();
       } catch (err) {
         setError('Failed to add habit. Please try again.');
@@ -88,7 +88,7 @@ const Habits = () => {
   const handleStartEdit = (habit) => {
     setEditingId(habit.id);
     setEditingName(habit.name);
-    setEditingSkill(habit.skill_id || '');
+    setEditingSkillIds(habit.skill_ids || []);
   };
 
   const handleSaveEdit = async (id) => {
@@ -97,11 +97,11 @@ const Habits = () => {
         setError(null);
         await updateHabit(id, {
           name: editingName.trim(),
-          skillId: editingSkill || null,
+          skillIds: editingSkillIds,
         });
         setEditingId(null);
         setEditingName('');
-        setEditingSkill('');
+        setEditingSkillIds([]);
         await loadData();
       } catch (err) {
         setError('Failed to update habit. Please try again.');
@@ -113,7 +113,7 @@ const Habits = () => {
   const handleCancelEdit = () => {
     setEditingId(null);
     setEditingName('');
-    setEditingSkill('');
+    setEditingSkillIds([]);
   };
 
   const handleToggleCompletion = async (habitId) => {
@@ -132,9 +132,19 @@ const Habits = () => {
     }
   };
 
-  const getSkillName = (skillId) => {
-    const skill = skills.find((s) => s.id === skillId);
-    return skill ? skill.name : 'No skill';
+  const getSkillNames = (skillIds) => {
+    if (!skillIds || skillIds.length === 0) return 'No skills';
+    return skillIds
+      .map(id => skills.find(s => s.id === id)?.name || 'Unknown')
+      .join(', ');
+  };
+
+  const toggleSkillId = (skillId, currentIds, setIds) => {
+    if (currentIds.includes(skillId)) {
+      setIds(currentIds.filter(id => id !== skillId));
+    } else {
+      setIds([...currentIds, skillId]);
+    }
   };
 
   const getNextLevelProgress = (xp) => {
@@ -173,18 +183,26 @@ const Habits = () => {
               placeholder="Enter habit name..."
               className="pixel-input w-full"
             />
-            <select
-              value={newHabitSkill}
-              onChange={(e) => setNewHabitSkill(e.target.value)}
-              className="pixel-select w-full"
-            >
-              <option value="">No skill (optional)</option>
-              {skills.map((skill) => (
-                <option key={skill.id} value={skill.id}>
-                  {skill.name}
-                </option>
-              ))}
-            </select>
+            <div>
+              <label className="text-xs text-theme-text-muted block mb-2">Link to Skills (optional)</label>
+              <div className="max-h-32 overflow-y-auto bg-theme-bg-dark border-4 border-theme-border p-2">
+                {skills.length === 0 ? (
+                  <p className="text-xs text-theme-text-muted">No skills available. Create skills first!</p>
+                ) : (
+                  skills.map((skill) => (
+                    <label key={skill.id} className="flex items-center gap-2 py-1 cursor-pointer hover:bg-theme-bg">
+                      <input
+                        type="checkbox"
+                        checked={newHabitSkillIds.includes(skill.id)}
+                        onChange={() => toggleSkillId(skill.id, newHabitSkillIds, setNewHabitSkillIds)}
+                        className="w-4 h-4 accent-theme-primary"
+                      />
+                      <span className="text-xs text-theme-text">{skill.name}</span>
+                    </label>
+                  ))
+                )}
+              </div>
+            </div>
             <button type="submit" className="pixel-button w-full">
               Add Habit
             </button>
@@ -221,18 +239,26 @@ const Habits = () => {
                           className="pixel-input w-full"
                           autoFocus
                         />
-                        <select
-                          value={editingSkill}
-                          onChange={(e) => setEditingSkill(e.target.value)}
-                          className="pixel-select w-full"
-                        >
-                          <option value="">No skill</option>
-                          {skills.map((skill) => (
-                            <option key={skill.id} value={skill.id}>
-                              {skill.name}
-                            </option>
-                          ))}
-                        </select>
+                        <div>
+                          <label className="text-xs text-theme-text-muted block mb-2">Link to Skills</label>
+                          <div className="max-h-32 overflow-y-auto bg-theme-bg border-4 border-theme-border p-2">
+                            {skills.length === 0 ? (
+                              <p className="text-xs text-theme-text-muted">No skills available</p>
+                            ) : (
+                              skills.map((skill) => (
+                                <label key={skill.id} className="flex items-center gap-2 py-1 cursor-pointer hover:bg-theme-bg-dark">
+                                  <input
+                                    type="checkbox"
+                                    checked={editingSkillIds.includes(skill.id)}
+                                    onChange={() => toggleSkillId(skill.id, editingSkillIds, setEditingSkillIds)}
+                                    className="w-4 h-4 accent-theme-primary"
+                                  />
+                                  <span className="text-xs text-theme-text">{skill.name}</span>
+                                </label>
+                              ))
+                            )}
+                          </div>
+                        </div>
                         <div className="flex gap-2">
                           <button
                             onClick={() => handleSaveEdit(habit.id)}
@@ -254,7 +280,7 @@ const Habits = () => {
                           <div className="flex-1">
                             <h3 className="text-theme-primary text-sm mb-2">{habit.name}</h3>
                             <p className="text-xs text-theme-text-muted">
-                              Skill: {getSkillName(habit.skill_id)}
+                              Skills: {getSkillNames(habit.skill_ids)}
                             </p>
                             <p className="text-xs text-theme-text-muted">
                               Total XP: {habit.xp} (Next skill level at {nextLevelAt} XP)

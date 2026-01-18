@@ -63,10 +63,10 @@ export const skillsAPI = {
 export const habitsAPI = {
   getAll: () => apiRequest('/habits'),
 
-  create: (name, skillId) =>
+  create: (name, skillIds) =>
     apiRequest('/habits', {
       method: 'POST',
-      body: JSON.stringify({ name, skillId }),
+      body: JSON.stringify({ name, skillIds }),
     }),
 
   update: (id, updates) =>
