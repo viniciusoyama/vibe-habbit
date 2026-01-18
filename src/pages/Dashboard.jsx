@@ -2,12 +2,14 @@ import React, { useState, useEffect } from 'react';
 import CharacterSprite from '../components/Character';
 import { getCharacter, getSkills, getHabits } from '../utils/storageAPI';
 import { getSkillCap, getProgressPercent } from '../utils/skillCap';
+import { getQuote } from '../utils/quotes';
 
 const Dashboard = () => {
   const [character, setCharacter] = useState(null);
   const [skills, setSkills] = useState([]);
   const [habits, setHabits] = useState([]);
   const [loading, setLoading] = useState(true);
+  const quote = getQuote();
 
   useEffect(() => {
     loadData();
@@ -126,9 +128,9 @@ const Dashboard = () => {
           {/* Funny motivational quote */}
           <div className="bg-theme-bg-dark border-2 border-dashed border-theme-primary p-3 mb-4">
             <p className="text-xs text-theme-text-muted italic text-center">
-              "The cap always increases. Growing never ends!"
+              { quote.text }
             </p>
-            <p className="text-xs text-theme-primary text-center mt-1">— Master Oogway</p>
+            <p className="text-xs text-theme-primary text-center mt-1">— { quote.author }</p>
           </div>
 
           {skills.length === 0 ? (
