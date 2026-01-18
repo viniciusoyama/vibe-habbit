@@ -23,4 +23,5 @@ There is no final boss. The level cap keeps moving. Good luck.
 
 ## How to run
 
+- `docker compose build`
 - `docker compose up`

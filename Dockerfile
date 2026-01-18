@@ -1,6 +1,9 @@
 # Build stage
 FROM node:25.3.0-alpine3.23 AS builder
 
+ARG VITE_API_URL
+ENV VITE_API_URL $VITE_API_URL
+
 WORKDIR /app
 
 # Copy package files

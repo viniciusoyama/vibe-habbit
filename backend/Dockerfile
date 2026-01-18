@@ -1,5 +1,8 @@
 FROM node:25.3.0-alpine3.23
 
+ARG FRONTEND_URL
+ENV FRONTEND_URL $FRONTEND_URL
+
 # Set working directory
 WORKDIR /app
 
